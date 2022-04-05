@@ -1,0 +1,10 @@
+http:
+  port: "8085"
+  host: "0.0.0.0"
+  path: "/api/*"
+salesforce:
+  username: bigshots.persistent@gmail.com
+  password: BS@Persistent01
+  token: k2Knki10CP7jswgovxMRdoHmZ
+
+

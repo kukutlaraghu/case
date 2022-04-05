@@ -1,0 +1,18 @@
+[
+  {
+    "caseId__c": 99,
+    "Id": "e4dd2731ac7c4d65873",
+    "inDate__c": "2010-08-05",
+    "Name": "Ada",
+    "outDate__c": "2001-10-25",
+    "status__c": "anim"
+  },
+  {
+    "caseId__c": 56,
+    "Id": "12aa436f477645339e8",
+    "inDate__c": "2014-01-20",
+    "Name": "Allie",
+    "outDate__c": "2008-05-19",
+    "status__c": "in"
+  }
+]

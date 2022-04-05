@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns:snowflake="http://www.mulesoft.org/schema/mule/snowflake" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/snowflake http://www.mulesoft.org/schema/mule/snowflake/current/mule-snowflake.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
+    <http:listener-config name="procaseapi-httpListenerConfig">
+        <http:listener-connection host="localhost" port="8085" />
+    </http:listener-config>
+    <apikit:config name="procaseapi-config" api="procaseapi.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="7114a14f-8781-4d13-8d22-5c60554a8e8e" >
+		<salesforce:basic-connection username="${salesforce.username}" password="${salesforce.password}" securityToken="${salesforce.token}"/>
+	</salesforce:sfdc-config>
+	<snowflake:snowflake-config name="Snowflake_Config" doc:name="Snowflake Config" doc:id="fd7c5653-defb-42b7-9ff5-daaa4f6b4c88" >
+		<snowflake:snowflake-connection accountName="aw70024.ap-south-1.aws" warehouse="WH_STORE" database="SALESFORCE" schema="PUBLIC" user="mulerdv" password="Sai@1may" />
+	</snowflake:snowflake-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="3dce5080-0d82-41ea-aa23-385282c3cb9b" file="configuration\Case-DEV-config.yaml" />
+	<api-gateway:autodiscovery apiId="17742847" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="1e21ff49-2e2e-4970-927d-1ab6cf857fc6" flowRef="get:\Case:procaseapi-config" />
+	<flow name="procaseapi-main">
+        <http:listener config-ref="procaseapi-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="procaseapi-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+	<flow name="get:\Case:procaseapi-config">
+        <logger level="INFO" doc:name="Logger" doc:id="407bde9e-0cd3-4504-9929-f7e55cefd4be" message='"get the data from salesfore"' />
+		<salesforce:query doc:name="Query" doc:id="4a44906c-4d0e-4344-b8f7-f045343b662c" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query><![CDATA[SELECT caseId__c, inDate__c, outDate__c, status__c, Id, Name FROM Patient__c]]></salesforce:salesforce-query>
+		</salesforce:query>
+		<set-payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]" doc:name="Set Payload" doc:id="944f3a26-484a-4b15-ab1e-d62f929f7e54" />
+		<ee:transform doc:id="7bc1dc52-2a20-47f8-84f9-73d8514379ea">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+(payload map(item,index) ->
+{
+	outDate: item.outDate__c,
+	inDate: item.inDate__c,
+	CaseName: item.Name,
+	Id: item.Id,
+	Status: item.status__c,
+	CaseID: item.caseId__c,
+	days: (item.outDate__c - item.inDate__c) as Number {unit: "days"}
+}) filter (item, index) -> item.days > 1095
+
+
+]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="8f83a29a-e6ee-4fdc-84b2-9324d52fcc8a" message="#[payload]" category="After Transform" />
+		<async doc:name="Async" doc:id="3c9901cb-2187-41c7-ad19-2004619dc111" >
+			<foreach doc:name="For Each" doc:id="d3ac63c1-57dc-4970-9b60-c8b73008bd23">
+				<snowflake:insert doc:name="Insert" doc:id="85f434f1-9112-44dc-99c4-2d83ddeddeb1" config-ref="Snowflake_Config">
+				<snowflake:sql><![CDATA[insert into CASE(CaseID,CASENAME,INDATE,OUTDATE,STATUS) values (:CaseID, :CASENAME, :INDATE, :OUTDATE, :STATUS);]]></snowflake:sql>
+				<snowflake:input-parameters><![CDATA[#[{
+	CaseID: payload.Id,
+	CASENAME: payload.CaseName,
+	INDATE: payload.inDate,
+	OUTDATE: payload.outDate,
+	STATUS: payload.Status
+}]]]></snowflake:input-parameters>
+			</snowflake:insert>
+				<ee:transform doc:name="Transform Message" doc:id="bad27705-d0aa-4a47-bc98-9f7a13023d9a">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</foreach>
+		</async>
+		<logger level="INFO" doc:name="Logger" doc:id="077fabb3-d6b2-4565-801c-e002edf32cd2" message='"this is last request"'/>
+		<ee:transform doc:name="Transform Message" doc:id="13fd82d7-9176-4b54-9f6e-81a055933b16" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+    </flow>
+</mule>
