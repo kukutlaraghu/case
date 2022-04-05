@@ -1,0 +1,27 @@
+#%RAML 1.0
+title: expCaseApi
+version: v1
+protocols: 
+- HTTP
+mediaType: 
+- application/json
+/Case:
+   get:
+    description: Retrieve the data from salesforce by MuleSoft and then, filter the cases which are >3 years and move them into snowflake.
+    responses:
+      200:
+        body:
+          application/json:
+            example:  !include Library/example/200response.json
+      400:
+        body:
+          application/json:
+            example: !include Library/example/400response.json
+      500:
+        body:
+          application/json:
+            example: !include Library/example/500response.json
+              
+              
+              
+              
